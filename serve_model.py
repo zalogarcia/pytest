@@ -25,7 +25,10 @@ _enc = None
 def load_model():
     global model, tokenizer, _enc
 
-    # Monkey-patch safetensors to load adapter weights to CPU (avoids OOM)
+    # Import unsloth FIRST -- it patches transformers to register qwen3_5_moe model type
+    from unsloth import FastLanguageModel
+
+    # THEN monkey-patch safetensors to load adapter weights to CPU (avoids OOM)
     import safetensors.torch
     _orig_sf_load = safetensors.torch.load_file
     def _cpu_load(filename, device=None):
@@ -33,8 +36,6 @@ def load_model():
     safetensors.torch.load_file = _cpu_load
     import peft.utils.save_and_load
     peft.utils.save_and_load.safe_load_file = _cpu_load
-
-    from unsloth import FastLanguageModel
 
     print("Loading model with LoRA adapters...")
     model, tokenizer = FastLanguageModel.from_pretrained(
